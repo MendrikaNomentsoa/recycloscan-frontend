@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import History from './pages/History'
 import Leaderboard from './pages/Leaderboard'
 import Navbar from './components/Navbar'
+import Dashboard from './pages/Dashboard'
 
 // Protège les routes — redirige vers login si non connecté
 function PrivateRoute({ children }) {
@@ -33,6 +34,9 @@ function AppRoutes() {
         } />
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/dashboard" element={
+          <PrivateRoute><Dashboard /></PrivateRoute>
+        } />
       </Routes>
     </>
   )

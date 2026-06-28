@@ -20,6 +20,9 @@ export default function Navbar() {
 
       {/* Navigation */}
       <div className="flex items-center gap-6">
+        <Link to="/dashboard" className="hover:text-green-200 transition">
+          📊 Stats
+        </Link>
         <Link to="/" className="hover:text-green-200 transition">
           Scanner
         </Link>
@@ -34,6 +37,8 @@ export default function Navbar() {
         <span className="bg-green-700 px-3 py-1 rounded-full text-sm font-medium">
           🌱 {user?.totalPoints || 0} pts
         </span>
+
+
 
         {/* Déconnexion */}
         <button
