@@ -1,14 +1,12 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import ScanResult from '../components/ScanResult'
+import DetectionCamera from '../components/DetectionCamera'
 
 export default function Home() {
   const { user, login } = useAuth()
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
 
-  const [cameraOn, setCameraOn] = useState(false)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -16,76 +14,40 @@ export default function Home() {
   const [mode, setMode] = useState('camera')
 
   // ========================
-  // Activer la caméra
+  // Appelé par DetectionCamera quand un objet est capturé
   // ========================
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          // 'user' = caméra frontale PC — corrige le problème de miroir
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      })
-      videoRef.current.srcObject = stream
-      setCameraOn(true)
-      setResult(null)
-      setError('')
-    } catch (err) {
-      setError('Impossible d accéder à la caméra. Vérifie les permissions.')
-    }
-  }
-
-  // ========================
-  // Arrêter la caméra
-  // ========================
-  const stopCamera = () => {
-    const stream = videoRef.current?.srcObject
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop())
-    }
-    setCameraOn(false)
-  }
-
-  // ========================
-  // Capturer la photo et envoyer à Spring Boot
-  // ========================
-  const captureAndScan = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return
-
+  const handleCapture = async (base64Image, detectedLabel) => {
     setLoading(true)
     setError('')
-
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    const ctx = canvas.getContext('2d')
-
-    // Dessiner l'image normalement sur le canvas
-    // La vidéo est visuellement retournée via CSS mais le canvas
-    // capture le flux original — Gemini reçoit une image correcte
-    ctx.drawImage(video, 0, 0)
-
-    const base64Image = canvas.toDataURL('image/jpeg').split(',')[1]
+    setResult(null)
 
     try {
+      // Envoyer à Spring Boot → Gemini pour confirmation
       const res = await api.post('/api/scan/photo', { image: base64Image })
       setResult(res.data)
-      stopCamera()
 
-      // Mettre à jour les points dans le contexte
       const updatedUser = { ...user, totalPoints: res.data.totalPoints }
       login(updatedUser, localStorage.getItem('token'))
 
     } catch (err) {
-      setError('Erreur lors du scan. Réessaie.')
+      // Si Gemini échoue, utiliser le label TensorFlow directement
+      if (detectedLabel) {
+        try {
+          const res = await api.post('/api/scan/manual', { keyword: detectedLabel })
+          setResult(res.data)
+
+          const updatedUser = { ...user, totalPoints: res.data.totalPoints }
+          login(updatedUser, localStorage.getItem('token'))
+        } catch (e) {
+          setError('Erreur lors du scan. Réessaie.')
+        }
+      } else {
+        setError('Erreur lors du scan. Réessaie.')
+      }
     } finally {
       setLoading(false)
     }
-  }, [user, login])
+  }
 
   // ========================
   // Scan manuel par texte
@@ -122,7 +84,7 @@ export default function Home() {
             Scanner un déchet
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Utilise la caméra ou tape le nom du déchet
+            Pointe la caméra vers un objet — détection automatique
           </p>
         </div>
 
@@ -136,10 +98,10 @@ export default function Home() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            📷 Caméra
+            📷 Détection auto
           </button>
           <button
-            onClick={() => { setMode('manual'); stopCamera(); setResult(null); setError('') }}
+            onClick={() => { setMode('manual'); setResult(null); setError('') }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
               mode === 'manual'
                 ? 'bg-green-600 text-white'
@@ -150,141 +112,18 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Mode Caméra */}
+        {/* Mode Caméra avec détection temps réel */}
         {mode === 'camera' && (
           <div className="bg-white rounded-2xl shadow p-4">
-
-            {/* Conteneur vidéo */}
-            <div
-              className="relative bg-black rounded-xl overflow-hidden mb-4"
-              style={{ minHeight: '280px' }}
-            >
-
-              {/* Video — scaleX(-1) retourne visuellement le flux
-                  pour que le mouvement soit naturel comme un miroir */}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  display: cameraOn ? 'block' : 'none',
-                  width: '100%',
-                  borderRadius: '12px',
-                  transform: 'scaleX(-1)',
-                  WebkitTransform: 'scaleX(-1)',
-                  MozTransform: 'scaleX(-1)',
-                  msTransform: 'scaleX(-1)'
-                }}
-              />
-
-              {/* Cadre de visée */}
-              {cameraOn && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-
-                  {/* Overlay sombre sur les bords */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: 'rgba(0,0,0,0.45)',
-                      maskImage: 'radial-gradient(ellipse 58% 52% at 50% 50%, transparent 100%, black 100%)',
-                      WebkitMaskImage: 'radial-gradient(ellipse 58% 52% at 50% 50%, transparent 100%, black 100%)'
-                    }}
-                  />
-
-                  {/* Cadre vert avec coins */}
-                  <div className="relative w-56 h-56">
-
-                    {/* Coin haut gauche */}
-                    <div className="absolute top-0 left-0 w-8 h-8
-                                    border-t-4 border-l-4 border-green-400 rounded-tl-lg" />
-
-                    {/* Coin haut droit */}
-                    <div className="absolute top-0 right-0 w-8 h-8
-                                    border-t-4 border-r-4 border-green-400 rounded-tr-lg" />
-
-                    {/* Coin bas gauche */}
-                    <div className="absolute bottom-0 left-0 w-8 h-8
-                                    border-b-4 border-l-4 border-green-400 rounded-bl-lg" />
-
-                    {/* Coin bas droit */}
-                    <div className="absolute bottom-0 right-0 w-8 h-8
-                                    border-b-4 border-r-4 border-green-400 rounded-br-lg" />
-
-                    {/* Ligne de scan animée */}
-                    {!loading && (
-                      <div
-                        className="absolute left-2 right-2 h-0.5 bg-green-400 opacity-80"
-                        style={{ animation: 'scan 2s linear infinite' }}
-                      />
-                    )}
-
-                    {/* Spinner pendant analyse */}
-                    {loading && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                        <div className="w-10 h-10 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-green-400 text-xs font-medium tracking-wide">
-                          Analyse en cours...
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Texte guide */}
-                    {!loading && (
-                      <div className="absolute inset-0 flex items-end justify-center pb-3">
-                        <span className="text-green-400 text-xs font-medium tracking-widest uppercase">
-                          Centrer l'objet
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Écran vide quand caméra inactive */}
-              {!cameraOn && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="text-6xl">📷</span>
-                    <p className="mt-3 text-sm text-gray-400">
-                      Clique pour activer la caméra
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Canvas caché pour capture */}
-            <canvas ref={canvasRef} className="hidden" />
-
-            {/* Boutons */}
-            <div className="flex gap-3">
-              {!cameraOn ? (
-                <button
-                  onClick={startCamera}
-                  className="flex-1 bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition"
-                >
-                  Activer la caméra
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={stopCamera}
-                    disabled={loading}
-                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 transition disabled:opacity-50"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    onClick={captureAndScan}
-                    disabled={loading}
-                    className="flex-1 bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition disabled:opacity-50"
-                  >
-                    {loading ? 'Analyse...' : '📸 Scanner'}
-                  </button>
-                </>
-              )}
-            </div>
+            <DetectionCamera
+              onCapture={handleCapture}
+            />
+            {/* Spinner pendant envoi à Gemini */}
+            {loading && (
+              <div className="mt-4 text-center text-green-600 text-sm font-medium">
+                ⏳ Analyse avec Gemini en cours...
+              </div>
+            )}
           </div>
         )}
 
