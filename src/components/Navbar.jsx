@@ -20,11 +20,11 @@ export default function Navbar() {
 
       {/* Navigation */}
       <div className="flex items-center gap-6">
-        <Link to="/dashboard" className="hover:text-green-200 transition">
+        <Link to="/" className="hover:text-green-200 transition">
           📊 Stats
         </Link>
-        <Link to="/" className="hover:text-green-200 transition">
-          Scanner
+        <Link to="/scanner" className="hover:text-green-200 transition">
+          📷 Scanner
         </Link>
         <Link to="/history" className="hover:text-green-200 transition">
           Historique
@@ -33,12 +33,10 @@ export default function Navbar() {
           Classement
         </Link>
 
-        {/* Points utilisateur */}
+        {/* Points */}
         <span className="bg-green-700 px-3 py-1 rounded-full text-sm font-medium">
           🌱 {user?.totalPoints || 0} pts
         </span>
-
-
 
         {/* Déconnexion */}
         <button
