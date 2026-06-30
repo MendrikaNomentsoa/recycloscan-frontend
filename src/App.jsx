@@ -3,10 +3,10 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
-import History from './pages/History'
 import Leaderboard from './pages/Leaderboard'
 import Dashboard from './pages/Dashboard'
 import Navbar from './components/Navbar'
+import EcoAssistant from './pages/EcoAssistant'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -32,8 +32,8 @@ function AppRoutes() {
           <PrivateRoute><Home /></PrivateRoute>
         } />
 
-        <Route path="/history" element={
-          <PrivateRoute><History /></PrivateRoute>
+        <Route path="/eco" element={
+          <PrivateRoute><EcoAssistant /></PrivateRoute>
         } />
 
         <Route path="/leaderboard" element={

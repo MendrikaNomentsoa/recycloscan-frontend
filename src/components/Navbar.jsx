@@ -26,8 +26,8 @@ export default function Navbar() {
         <Link to="/scanner" className="hover:text-green-200 transition">
           📷 Scanner
         </Link>
-        <Link to="/history" className="hover:text-green-200 transition">
-          Historique
+        <Link to="/eco" className="hover:text-green-200 transition">
+          🌿 Assistant
         </Link>
         <Link to="/leaderboard" className="hover:text-green-200 transition">
           Classement
