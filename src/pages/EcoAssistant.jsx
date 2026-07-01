@@ -107,9 +107,62 @@ const Icons = {
     </svg>
   ),
   
-  ChevronRight: () => (
+  // Nouveaux icônes pour remplacer les emojis des conseils et défis
+  Tip: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6" />
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  ),
+  
+  Progress: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  
+  Target: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  ),
+  
+  RecyclingTip: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12L9 12" />
+      <path d="M12 15l3-3-3-3" />
+      <path d="M3 12h6" />
+      <path d="M6 9l-3 3 3 3" />
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  ),
+  
+  Trophy: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+    </svg>
+  ),
+  
+  Star: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
+  
+  Info: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
   )
 }
@@ -126,6 +179,16 @@ const PRIORITY_ICONS = {
   LOW:    Icons.PriorityLow,
 }
 
+// Mapping des catégories d'icônes pour les conseils
+const TIP_ICONS = {
+  'plastique': Icons.RecyclingTip,
+  'verre': Icons.Tip,
+  'papier': Icons.Info,
+  'organique': Icons.Progress,
+  'danger': Icons.PriorityHigh,
+  'default': Icons.Bulb
+}
+
 const SUGGESTED_QUESTIONS = [
   "Comment recycler une bouteille en plastique ?",
   "Que faire avec les piles usagées ?",
@@ -134,6 +197,27 @@ const SUGGESTED_QUESTIONS = [
   "Comment réduire mes déchets plastiques ?",
   "Où déposer les médicaments périmés ?",
 ]
+
+// Fonction pour obtenir une icône basée sur le titre du conseil
+const getTipIcon = (title) => {
+  const lowerTitle = title.toLowerCase()
+  if (lowerTitle.includes('plastique')) return Icons.RecyclingTip
+  if (lowerTitle.includes('verre')) return Icons.Tip
+  if (lowerTitle.includes('papier')) return Icons.Info
+  if (lowerTitle.includes('organique') || lowerTitle.includes('compost')) return Icons.Progress
+  if (lowerTitle.includes('danger') || lowerTitle.includes('toxique')) return Icons.PriorityHigh
+  return Icons.Bulb
+}
+
+// Fonction pour obtenir une icône basée sur le titre du défi
+const getChallengeIcon = (title) => {
+  const lowerTitle = title.toLowerCase()
+  if (lowerTitle.includes('recycler') || lowerTitle.includes('tri')) return Icons.RecyclingTip
+  if (lowerTitle.includes('objectif') || lowerTitle.includes('but')) return Icons.Target
+  if (lowerTitle.includes('gagner') || lowerTitle.includes('points')) return Icons.Star
+  if (lowerTitle.includes('semaine') || lowerTitle.includes('mois')) return Icons.Progress
+  return Icons.Challenge
+}
 
 export default function EcoAssistant() {
   const [advice, setAdvice] = useState(null)
@@ -258,10 +342,11 @@ export default function EcoAssistant() {
               <div className="eco-tips">
                 {advice.conseils.slice(0, 4).map((conseil, index) => {
                   const PriorityIcon = PRIORITY_ICONS[conseil.priorite]
+                  const TipIcon = getTipIcon(conseil.titre)
                   return (
                     <div key={index} className={PRIORITY_COLORS[conseil.priorite]}>
                       <div className="priority__content">
-                        <span className="priority__emoji">{conseil.emoji}</span>
+                        <span className="priority__icon"><TipIcon /></span>
                         <div className="priority__info">
                           <div className="priority__header">
                             <p className="priority__title">{conseil.titre}</p>
@@ -289,36 +374,39 @@ export default function EcoAssistant() {
               </div>
 
               <div className="eco-challenges">
-                {advice.defis.slice(0, 4).map((defi, index) => (
-                  <div key={index} className="challenge">
-                    <div className="challenge__header">
-                      <div className="challenge__info">
-                        <span className="challenge__emoji">{defi.emoji}</span>
-                        <div>
-                          <p className={`challenge__title ${defi.completed ? 'challenge__title--done' : ''}`}>
-                            {defi.titre}
-                          </p>
-                          <p className="challenge__description">{defi.description}</p>
+                {advice.defis.slice(0, 4).map((defi, index) => {
+                  const ChallengeIcon = getChallengeIcon(defi.titre)
+                  return (
+                    <div key={index} className="challenge">
+                      <div className="challenge__header">
+                        <div className="challenge__info">
+                          <span className="challenge__icon"><ChallengeIcon /></span>
+                          <div>
+                            <p className={`challenge__title ${defi.completed ? 'challenge__title--done' : ''}`}>
+                              {defi.titre}
+                            </p>
+                            <p className="challenge__description">{defi.description}</p>
+                          </div>
                         </div>
+                        <span className="challenge__points">+{defi.bonusPoints} pts</span>
                       </div>
-                      <span className="challenge__points">+{defi.bonusPoints} pts</span>
+                      <div className="challenge__progress">
+                        <div className="challenge__track">
+                          <div
+                            className={`challenge__fill ${defi.completed ? 'challenge__fill--done' : ''}`}
+                            style={{ width: `${defi.progress}%` }}
+                          />
+                        </div>
+                        <span className="challenge__count">{defi.current}/{defi.target}</span>
+                      </div>
+                      {defi.completed && (
+                        <div className="challenge__completed">
+                          <Icons.Check /> Complété
+                        </div>
+                      )}
                     </div>
-                    <div className="challenge__progress">
-                      <div className="challenge__track">
-                        <div
-                          className={`challenge__fill ${defi.completed ? 'challenge__fill--done' : ''}`}
-                          style={{ width: `${defi.progress}%` }}
-                        />
-                      </div>
-                      <span className="challenge__count">{defi.current}/{defi.target}</span>
-                    </div>
-                    {defi.completed && (
-                      <div className="challenge__completed">
-                        <Icons.Check /> Complété
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -695,9 +783,21 @@ function EcoStyles() {
         align-items: flex-start;
       }
 
-      .priority__emoji {
-        font-size: 20px;
+      .priority__icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
+        color: var(--eco-text-secondary);
+      }
+
+      .priority__icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentColor;
+        stroke-width: 2;
       }
 
       .priority__info {
@@ -786,9 +886,21 @@ function EcoStyles() {
         min-width: 0;
       }
 
-      .challenge__emoji {
-        font-size: 18px;
+      .challenge__icon {
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
+        color: var(--eco-primary);
+      }
+
+      .challenge__icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentColor;
+        stroke-width: 2;
       }
 
       .challenge__title {
